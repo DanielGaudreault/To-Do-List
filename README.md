@@ -1,3 +1,3 @@
 # To-Do-List
 
-You can visit my Resume Website [here](https://danielgaudreault.github.io/DanielsGaudreaultResume/).
+You can visit My TO-DO-List Website [here](https://danielgaudreault.github.io/To-Do-List/).
