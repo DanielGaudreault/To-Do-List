@@ -5,6 +5,8 @@ const priorityInput = document.getElementById('priority-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 const clearAllBtn = document.getElementById('clear-all-btn');
 const taskList = document.getElementById('task-list');
+const searchInput = document.getElementById('search-input');
+const filterPriority = document.getElementById('filter-priority');
 
 // Load tasks from local storage
 document.addEventListener('DOMContentLoaded', loadTasks);
@@ -14,6 +16,17 @@ addTaskBtn.addEventListener('click', addTask);
 
 // Clear all tasks
 clearAllBtn.addEventListener('click', clearAllTasks);
+
+// Search and filter tasks
+searchInput.addEventListener('input', filterTasks);
+filterPriority.addEventListener('change', filterTasks);
+
+// Drag-and-drop functionality
+taskList.addEventListener('dragstart', dragStart);
+taskList.addEventListener('dragover', dragOver);
+taskList.addEventListener('drop', drop);
+
+let draggedItem = null;
 
 // Function to add a task
 function addTask() {
@@ -28,6 +41,7 @@ function addTask() {
 
   // Create new task item
   const li = document.createElement('li');
+  li.draggable = true;
 
   // Task info (text, due date, priority)
   const taskInfo = document.createElement('div');
@@ -71,8 +85,11 @@ function addTask() {
 // Function to delete a task
 function deleteTask(event) {
   const li = event.target.closest('li');
-  taskList.removeChild(li);
-  removeTaskFromLocalStorage(li.querySelector('.task-info span').textContent);
+  li.classList.add('deleting');
+  li.addEventListener('animationend', () => {
+    taskList.removeChild(li);
+    removeTaskFromLocalStorage(li.querySelector('.task-info span').textContent);
+  });
 }
 
 // Function to toggle task completion
@@ -110,6 +127,7 @@ function loadTasks() {
   let tasks = getTasksFromLocalStorage();
   tasks.forEach(task => {
     const li = document.createElement('li');
+    li.draggable = true;
 
     // Task info
     const taskInfo = document.createElement('div');
@@ -147,5 +165,72 @@ function loadTasks() {
 function removeTaskFromLocalStorage(taskText) {
   let tasks = getTasksFromLocalStorage();
   tasks = tasks.filter(task => task.text !== taskText);
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+// Function to filter tasks
+function filterTasks() {
+  const searchText = searchInput.value.toLowerCase();
+  const selectedPriority = filterPriority.value;
+
+  taskList.querySelectorAll('li').forEach(li => {
+    const taskText = li.querySelector('.task-info span').textContent.toLowerCase();
+    const priority = li.querySelector('.priority').classList[1];
+    const matchesSearch = taskText.includes(searchText);
+    const matchesPriority = selectedPriority === 'all' || priority === selectedPriority;
+
+    if (matchesSearch && matchesPriority) {
+      li.style.display = 'flex';
+    } else {
+      li.style.display = 'none';
+    }
+  });
+}
+
+// Drag-and-drop functions
+function dragStart(event) {
+  draggedItem = event.target;
+  event.dataTransfer.setData('text/plain', '');
+  setTimeout(() => draggedItem.classList.add('dragging'), 0);
+}
+
+function dragOver(event) {
+  event.preventDefault();
+  const afterElement = getDragAfterElement(taskList, event.clientY);
+  const currentItem = document.querySelector('.dragging');
+  if (afterElement == null) {
+    taskList.appendChild(currentItem);
+  } else {
+    taskList.insertBefore(currentItem, afterElement);
+  }
+}
+
+function drop(event) {
+  event.preventDefault();
+  draggedItem.classList.remove('dragging');
+  saveTaskOrderToLocalStorage();
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function saveTaskOrderToLocalStorage() {
+  const tasks = [];
+  taskList.querySelectorAll('li').forEach(li => {
+    const taskText = li.querySelector('.task-info span').textContent;
+    const dueDate = li.querySelector('.task-info span:nth-child(2)').textContent.replace('Due: ', '');
+    const priority = li.querySelector('.priority').classList[1];
+    tasks.push({ text: taskText, dueDate, priority });
+  });
   localStorage.setItem('tasks', JSON.stringify(tasks));
 }
