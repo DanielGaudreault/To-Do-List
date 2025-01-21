@@ -7,6 +7,8 @@ const clearAllBtn = document.getElementById('clear-all-btn');
 const taskList = document.getElementById('task-list');
 const searchInput = document.getElementById('search-input');
 const filterPriority = document.getElementById('filter-priority');
+const sortBy = document.getElementById('sort-by');
+const darkModeToggle = document.getElementById('dark-mode-toggle');
 
 // Load tasks from local storage
 document.addEventListener('DOMContentLoaded', loadTasks);
@@ -21,10 +23,16 @@ clearAllBtn.addEventListener('click', clearAllTasks);
 searchInput.addEventListener('input', filterTasks);
 filterPriority.addEventListener('change', filterTasks);
 
+// Sort tasks
+sortBy.addEventListener('change', sortTasks);
+
 // Drag-and-drop functionality
 taskList.addEventListener('dragstart', dragStart);
 taskList.addEventListener('dragover', dragOver);
 taskList.addEventListener('drop', drop);
+
+// Dark mode toggle
+darkModeToggle.addEventListener('click', toggleDarkMode);
 
 let draggedItem = null;
 
@@ -187,6 +195,31 @@ function filterTasks() {
   });
 }
 
+// Function to sort tasks
+function sortTasks() {
+  const sortValue = sortBy.value;
+  const tasks = Array.from(taskList.querySelectorAll('li'));
+
+  tasks.sort((a, b) => {
+    if (sortValue === 'due-date') {
+      const dateA = a.querySelector('.task-info span:nth-child(2)').textContent.replace('Due: ', '');
+      const dateB = b.querySelector('.task-info span:nth-child(2)').textContent.replace('Due: ', '');
+      return new Date(dateA) - new Date(dateB);
+    } else if (sortValue === 'priority') {
+      const priorityA = a.querySelector('.priority').classList[1];
+      const priorityB = b.querySelector('.priority').classList[1];
+      const priorityOrder = { high: 1, medium: 2, low: 3 };
+      return priorityOrder[priorityA] - priorityOrder[priorityB];
+    } else {
+      return 0; // Default order
+    }
+  });
+
+  // Clear and re-add sorted tasks
+  taskList.innerHTML = '';
+  tasks.forEach(task => taskList.appendChild(task));
+}
+
 // Drag-and-drop functions
 function dragStart(event) {
   draggedItem = event.target;
@@ -234,3 +267,20 @@ function saveTaskOrderToLocalStorage() {
   });
   localStorage.setItem('tasks', JSON.stringify(tasks));
 }
+
+// Dark mode toggle
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  localStorage.setItem('darkMode', isDarkMode);
+}
+
+// Load dark mode preference
+function loadDarkModePreference() {
+  const isDarkMode = localStorage.getItem('darkMode') === 'true';
+  if (isDarkMode) {
+    document.body.classList.add('dark-mode');
+  }
+}
+
+loadDarkModePreference();
